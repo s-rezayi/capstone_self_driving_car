@@ -21,33 +21,27 @@ Please note that our simulator also provides the exact location of traffic light
 current status in `/vehicle/traffic_lights` message. You can use this message to build this node
 as well as to verify your TL classifier.
 
-TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 50 # Number of waypoints we will publish. You can change this number
+MAX_DECEL = 0.5
 
 
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater')
-
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
-
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        # TODO: Add other member variables you need below
-        # self.base_lane = None
+        self.base_lane = None
         self.pose = None
         self.base_waypoints = None
-        # self.stopline_wp_idx = -1
+        self.stopline_wp_idx = -1
         self.waypoints_2d = None
         self.waypoint_tree = None
-        # self.decelerate_count = 0
 
         self.loop()
 
@@ -58,8 +52,6 @@ class WaypointUpdater(object):
                 closest_waypoints_idx = self.get_closest_waypoint_idx()
                 self.publish_waypoints(closest_waypoints_idx)
             rate.sleep()
-
-        # rospy.spin()
 
     def get_closest_waypoint_idx(self):
         x = self.pose.pose.position.x
@@ -79,7 +71,6 @@ class WaypointUpdater(object):
 
         if val > 0:
             closest_idx = (closest_idx + 1) % len(self.waypoints_2d)
-        # rospy.logwarn("closest_idx={}".format(closest_idx))
         return closest_idx
 
     def publish_waypoints(self):
@@ -108,8 +99,8 @@ class WaypointUpdater(object):
             stop_idx = max(self.stopline_wp_idx - closest_idx - 3, 0) # Three waypoints back from line so front car stops at line
             dist = self.distance(waypoints, i, stop_idx)
             vel = math.sqrt(2 * MAX_DECEL * dist)
-            if vel < 1:
-                vel = 0
+            if vel < 1.0:
+                vel = 0.0
 
             p.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
             temp.append(p)
@@ -127,11 +118,10 @@ class WaypointUpdater(object):
             self.waypoint_tree = KDTree(self.waypoints_2d)
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
         self.stopline_wp_idx = msg.data
 
     def obstacle_cb(self, msg):
-        # TODO: Callback for /obstacle_waypoint message. We will implement it later
+
         pass
 
     def get_waypoint_velocity(self, waypoint):
