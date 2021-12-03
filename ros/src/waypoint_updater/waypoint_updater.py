@@ -30,6 +30,7 @@ MAX_DECEL = 0.5
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater')
+
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
@@ -38,7 +39,7 @@ class WaypointUpdater(object):
 
         self.base_lane = None
         self.pose = None
-        self.base_waypoints = None
+        # self.base_waypoints = None
         self.stopline_wp_idx = -1
         self.waypoints_2d = None
         self.waypoint_tree = None
@@ -48,9 +49,9 @@ class WaypointUpdater(object):
     def loop(self):
         rate = rospy.Rate(50)
         while not rospy.is_shutdown():
-            if self.pose and self.base_waypoints:
-                closest_waypoints_idx = self.get_closest_waypoint_idx()
-                self.publish_waypoints(closest_waypoints_idx)
+            if self.pose and self.base_lane:
+                # closest_waypoints_idx = self.get_closest_waypoint_idx()
+                self.publish_waypoints() #closest_waypoints_idx
             rate.sleep()
 
     def get_closest_waypoint_idx(self):
@@ -99,6 +100,7 @@ class WaypointUpdater(object):
             stop_idx = max(self.stopline_wp_idx - closest_idx - 3, 0) # Three waypoints back from line so front car stops at line
             dist = self.distance(waypoints, i, stop_idx)
             vel = math.sqrt(2 * MAX_DECEL * dist)
+            
             if vel < 1.0:
                 vel = 0.0
 
@@ -121,7 +123,6 @@ class WaypointUpdater(object):
         self.stopline_wp_idx = msg.data
 
     def obstacle_cb(self, msg):
-
         pass
 
     def get_waypoint_velocity(self, waypoint):
